@@ -27,6 +27,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
+
+import java.awt.event.KeyEvent;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -47,6 +49,10 @@ public class WindowsProvider extends Provider {
 
     private Map<Integer, HotKey> hotKeys = new HashMap<Integer, HotKey>();
     private Queue<HotKey> registerQueue = new LinkedList<HotKey>();
+    
+    private boolean keyPressed(int key) {
+    	return User32.INSTANCE.GetAsyncKeyState(key) != 0;
+    }
 
     public void init() {
         Runnable runnable = new Runnable() {
@@ -61,8 +67,29 @@ public class WindowsProvider extends Provider {
                             HotKey hotKey = hotKeys.get(id);
 
                             if (hotKey != null) {
+                            	
+                            	int modifiers = KeyMap.getModifiers(hotKey.keyStroke);
+                            	
+                            	boolean hasAlt = (modifiers | WinUser.MOD_ALT) != 0;
+                            	boolean hasControl = (modifiers | WinUser.MOD_CONTROL) != 0;
+                            	boolean hasShift = (modifiers | WinUser.MOD_SHIFT) != 0;
+                            	
+                            	while( (hasAlt && keyPressed(0x12)) || (hasControl && keyPressed(0x11)) || (hasShift && keyPressed(0x10)) ) {
+                            		User32.INSTANCE.PeekMessage(msg, null, 0, 0, 1);
+                            		try {
+                                        Thread.sleep(25);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
+                            	}
+                            	
                                 fireEvent(hotKey);
                             }
+                        }
+                        try {
+                            Thread.sleep(50);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
                         }
                     }
 
